@@ -1,0 +1,16 @@
+langgraph>=0.2
+langchain-core>=0.3
+langchain-groq>=0.2
+sqlalchemy>=2.0
+streamlit>=1.40
+requests>=2.31
+pydantic[email]>=2.6
+python-dotenv>=1.0
+tzdata>=2024.1
+pytest>=8.0
+fastapi>=0.115
+uvicorn[standard]>=0.32
+
+# Only needed if you deploy with DATABASE_URL pointing at Postgres (e.g. Render + Neon).
+# Not required for local SQLite use.
+psycopg[binary]>=3.2 ; python_version >= "3.9"

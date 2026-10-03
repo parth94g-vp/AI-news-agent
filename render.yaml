@@ -1,0 +1,39 @@
+# Render Blueprint - deploys ONLY the backend web service (free).
+#
+# The daily scheduled job is NOT here - Render charges a minimum of $1/month for any
+# Cron Job service, even on an otherwise free account, which is why Render asked for
+# payment info. The scheduler instead runs for free on GitHub Actions:
+# see .github/workflows/daily-digest.yml. That workflow does not need this web service
+# running at all - it talks directly to Groq/NewsData/the database.
+#
+# How to use: push this repo to GitHub, then on Render.com: New -> Blueprint -> pick the repo.
+#
+# IMPORTANT - free tier database caveat:
+# Render's free web services have an EPHEMERAL filesystem: a SQLite file at ./data/news_agent.db
+# is WIPED on every deploy and on periodic restarts. Set DATABASE_URL to a free hosted Postgres
+# instead (e.g. https://neon.tech - free, no credit card), so your users/preferences/saved
+# articles survive restarts. Keep using local SQLite only while running on your own laptop.
+# See README_DEPLOY.md.
+
+services:
+  - type: web
+    name: ai-news-agent-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEWSDATA_API_KEY
+        sync: false
+      - key: GMAIL_ADDRESS
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        sync: false   # set this to your Neon/Postgres URL - see the caveat above
+      - key: CORS_ORIGINS
+        sync: false   # your deployed frontend's URL, e.g. https://your-app.vercel.app
+      - key: TIMEZONE
+        value: Asia/Kolkata

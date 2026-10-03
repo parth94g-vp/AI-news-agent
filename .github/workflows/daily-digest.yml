@@ -1,0 +1,42 @@
+# Runs the daily news pipeline + email digest for free on GitHub's own servers.
+# (Render's Cron Jobs cost a minimum of $1/month even on a free account - this avoids that.)
+#
+# Setup (one-time):
+#   GitHub repo -> Settings -> Secrets and variables -> Actions -> "New repository secret"
+#   Add each of: GROQ_API_KEY, NEWSDATA_API_KEY, GMAIL_ADDRESS, GMAIL_APP_PASSWORD, DATABASE_URL
+#   (DATABASE_URL = your Neon/Postgres connection string - same one your Render web service uses,
+#   so both see the same users/preferences/articles.)
+#
+# Test it immediately instead of waiting for 9 AM: GitHub repo -> Actions tab ->
+# "Daily news digest" -> "Run workflow" button.
+
+name: Daily news digest
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # 03:30 UTC = 09:00 IST
+  workflow_dispatch: {}     # lets you trigger it manually from the Actions tab, any time
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline + email digest for every user
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWSDATA_API_KEY: ${{ secrets.NEWSDATA_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TIMEZONE: Asia/Kolkata
+        run: python scripts/run_scheduled_digest.py
