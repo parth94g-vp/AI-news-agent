@@ -14,6 +14,7 @@ from app.database.models import Base
 # added to a model after a database already exists.
 _COLUMN_MIGRATIONS = [
     ("users", "email", "VARCHAR(255)"),
+    ("users", "password_hash", "VARCHAR(255)"),
 ]
 
 

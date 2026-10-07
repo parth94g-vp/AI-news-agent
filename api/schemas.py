@@ -6,11 +6,23 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field
 
 
+class SignupRequest(BaseModel):
+    username: str = Field(min_length=2, max_length=40)
+    password: str = Field(min_length=8, max_length=72)
+
+
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=40)
+    password: str = Field(min_length=1, max_length=72)
 
 
-class UserOut(BaseModel):
+class AuthOut(BaseModel):
+    user_id: int
+    username: str
+    token: str
+
+
+class MeOut(BaseModel):
     user_id: int
     username: str
 

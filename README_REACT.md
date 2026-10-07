@@ -55,3 +55,19 @@ cd frontend && npm run build   # type/syntax check via the production build
 
 ## Next up (not built yet, by design)
 More topics ✅ done · Trending topics · Scheduled daily runs · Email digest · Proper login/accounts.
+
+## Authentication (added after the initial build)
+
+Real accounts now exist: passwords are hashed with bcrypt, and logging in issues a session
+token (`Authorization: Bearer <token>`), stored by the frontend and checked on every request.
+Every `/api/users/{user_id}/...` route verifies the token's owner matches `{user_id}` - one
+user can no longer view another's data by editing the URL.
+
+**Migrating existing accounts:** usernames created before this feature (no password set) are
+not locked out. The first time that username is used with **Sign Up** (not Log In), the server
+treats it as claiming the existing account and sets its first password - its preferences, saved
+articles and history are untouched.
+
+New endpoints: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
+`GET /api/auth/me`. See `app/services/auth_service.py` for the actual hashing/session logic -
+it's deliberately separate from the HTTP layer so it's unit-testable without spinning up FastAPI.

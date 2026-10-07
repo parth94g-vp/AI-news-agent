@@ -5,7 +5,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.deps import get_services
+from api.deps import get_current_user, get_services, require_owner
 from api.schemas import ArticleOut, DigestOut, RefreshOut, TrendingItemOut
 from app.bootstrap import Services
 from app.pipeline import run_pipeline
@@ -20,7 +20,9 @@ def _article_out(a) -> ArticleOut:  # app.schemas.ArticleView -> API ArticleOut
 
 
 @router.get("/digest", response_model=DigestOut)
-def get_digest(user_id: int, services: Services = Depends(get_services)) -> DigestOut:
+def get_digest(user_id: int, services: Services = Depends(get_services),
+              current: tuple[int, str] = Depends(get_current_user)) -> DigestOut:
+    require_owner(user_id, current)
     digest = services.repo.get_digest(user_id)
     if digest is None:
         raise HTTPException(404, "No digest yet. Call /refresh first.")
@@ -30,7 +32,9 @@ def get_digest(user_id: int, services: Services = Depends(get_services)) -> Dige
 
 
 @router.post("/refresh", response_model=RefreshOut)
-async def refresh_news(user_id: int, services: Services = Depends(get_services)) -> RefreshOut:
+async def refresh_news(user_id: int, services: Services = Depends(get_services),
+                       current: tuple[int, str] = Depends(get_current_user)) -> RefreshOut:
+    require_owner(user_id, current)
     if services.deps is None:
         raise HTTPException(503, f"News agent is not configured: {'; '.join(services.config_problems)}")
     try:
@@ -42,7 +46,9 @@ async def refresh_news(user_id: int, services: Services = Depends(get_services))
 
 
 @trending_router.get("", response_model=list[TrendingItemOut])
-def get_trending(services: Services = Depends(get_services)) -> list[TrendingItemOut]:
+def get_trending(services: Services = Depends(get_services),
+                 current: tuple[int, str] = Depends(get_current_user)) -> list[TrendingItemOut]:
+    # Global data, not user-specific - just needs SOME valid logged-in user, no ownership check.
     s = services.settings
     items = services.repo.get_trending_subtopics(s.trending_baseline_days, s.trending_min_count, s.trending_ratio)
     return [TrendingItemOut(**i.model_dump()) for i in items]

@@ -9,12 +9,18 @@ import Assistant from './pages/Assistant'
 import Preferences from './pages/Preferences'
 
 function RequireUser({ children }) {
-  const { user } = useUser()
+  const { user, checking } = useUser()
+  if (checking) {
+    return <div className="min-h-screen flex items-center justify-center" style={{ color: 'var(--muted)' }}>Loading…</div>
+  }
   return user ? children : <Navigate to="/login" replace />
 }
 
 function Routed() {
-  const { user } = useUser()
+  const { user, checking } = useUser()
+  if (checking) {
+    return <div className="min-h-screen flex items-center justify-center" style={{ color: 'var(--muted)' }}>Loading…</div>
+  }
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />

@@ -1,4 +1,8 @@
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const TOKEN_KEY = 'news_agent_token'
+
+export const getToken = () => localStorage.getItem(TOKEN_KEY)
+export const setToken = (token) => token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY)
 
 class ApiError extends Error {
   constructor(status, detail) {
@@ -7,11 +11,25 @@ class ApiError extends Error {
   }
 }
 
+// Fires when any request gets a 401, so the app can log the user out exactly once,
+// globally - no individual page needs to handle "my token stopped working" itself.
+let onUnauthorized = () => {}
+export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn }
+
 async function request(path, options = {}) {
+  const token = getToken()
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
     ...options,
   })
+  if (res.status === 401) {
+    setToken(null)
+    onUnauthorized()
+  }
   if (res.status === 204) return null
   const isJson = res.headers.get('content-type')?.includes('application/json')
   const body = isJson ? await res.json().catch(() => null) : null
@@ -21,7 +39,12 @@ async function request(path, options = {}) {
 
 export const api = {
   health: () => request('/api/health'),
-  login: (username) => request('/api/auth/login', { method: 'POST', body: JSON.stringify({ username }) }),
+  signup: (username, password) =>
+    request('/api/auth/signup', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  login: (username, password) =>
+    request('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+  me: () => request('/api/auth/me'),
   taxonomy: () => request('/api/taxonomy'),
   getPreferences: (userId) => request(`/api/users/${userId}/preferences`),
   setPreferences: (userId, preferences) =>
